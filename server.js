@@ -1,77 +1,178 @@
 const express = require('express');
 const fetch = require('node-fetch');
+const i18n = require('./scripts/language');
 const app = express();
 let serverStart;
-let disableComments = false;
+
 
 require('dotenv').config();
 const trelloApiKey = process.env.TRELLO_API_KEY;
 const trelloToken = process.env.TRELLO_TOKEN;
-const discordWebhookUrl = 'YOUR DISCORD WEBHOOK URL';
-const boardId = 'YOUR BOARD ID';
-
+const language = i18n[process.env.LANGUAGE || 'en'];
 let lastActionId = '';
 let messagesSended = [];
 let messagesQueue = [];
-const TIMER_DURATION = 20 * 60 * 1000; // 20 minutes in milliseconds
-const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
-setInterval(checkForTrelloUpdates, CHECK_INTERVAL);
-function initializeMessageTimer() {
-    setInterval(sendMessagesToDiscord, TIMER_DURATION);
+const config = {
+    trellos: [ 
+        {
+            'boardName': 'GTA V - ROADMAP',
+            'boardId': 'wlLJdpTt', // This is the board trello id
+            'disableComments': false, // This is to disable the comments in the console
+            'timer_duration': 20 * 60 * 1000, // 20 minutes in milliseconds
+            'check_interval': 5 * 60 * 1000, // 5 minutes in milliseconds
+            'discord_configs': {
+                'mentions': ['<@&786167547670167552>'], // This is the mention role or roles <@&000000000000000000>
+                'webhookUrl': 'https://discord.com/api/webhooks/1185625385514307645/s8HJaXcy3GQxb9GByUhVZW6p8XGI1BGI_Nq2e4yPcjuoZwkJaLse42ua4dGtIlGQsxG-',
+                'username': 'TrellordConnector - GTA V ROADMAP',
+                'avatar_url': 'https://media.discordapp.net/attachments/1190453964605493328/1193990719891853424/colores.png?ex=661d7782&is=660b0282&hm=66c624f92f5d28089e16603b9da724d3dce6bb2d5df23fdf89a70b21e249b91b&=&format=png&quality=lossless&width=671&height=671',
+            }
+        },
+        {
+            'boardName': 'ARK - ROADMAP',
+            'boardId': 'kidWdfvh',
+            'disableComments': false,
+            'timer_duration': 20 * 60 * 1000,
+            'check_interval': 5 * 60 * 1000,
+            'discord_configs': {
+                'mentions': ['<@&786167547670167552>'],
+                'webhookUrl': 'https://discord.com/api/webhooks/1185625385514307645/s8HJaXcy3GQxb9GByUhVZW6p8XGI1BGI_Nq2e4yPcjuoZwkJaLse42ua4dGtIlGQsxG-',
+                'username': 'TrellordConnector - ARK ROADMAP',
+                'avatar_url': 'https://media.discordapp.net/attachments/1190453964605493328/1193990719891853424/colores.png?ex=661d7782&is=660b0282&hm=66c624f92f5d28089e16603b9da724d3dce6bb2d5df23fdf89a70b21e249b91b&=&format=png&quality=lossless&width=671&height=671',
+            }
+        }
+    ],
 }
 
-function debugComment(message) {
-    if (disableComments) return;
-    debugComment(message);
+app.listen(8080, () => {
+    serverStart = new Date();
+    for (let c of config.trellos) {
+        setInterval(() => {
+            checkForTrelloUpdates(c);
+
+        }, c.check_interval);
+
+        setInterval(() => {
+            sendMessagesToDiscord(c);
+        }, c.timer_duration);
+
+    }
+    console.log(language.server_start + new Date().toLocaleTimeString());
+});
+
+function debugComment(message, disable) {
+    if (disable) return;
+    console.log(message);
 }
 
-async function checkForTrelloUpdates() {
+async function checkForTrelloUpdates(config) {
+    if (!config) return;
     let lastCheck = new Date();
     try {
-        const response = await fetch(`https://api.trello.com/1/boards/${boardId}/actions?key=${trelloApiKey}&token=${trelloToken}`);
+        const response = await fetch(`https://api.trello.com/1/boards/${config.boardId}/actions?key=${trelloApiKey}&token=${trelloToken}`);
+        if (!response.ok) {
+            console.error(language.error_checking_trello_api, response.statusText);
+            return;
+        }
         const actions = await response.json();
 
         let newActions = actions.filter(action => {
             const actionDate = new Date(action.date);
             const isNewAction = actionDate > serverStart;
-            const isNotQueued = !messagesQueue.some(message => message.key === action.id);
+            const isNotQueued = !messagesQueue.some(message => message.key === action.id && message.boardId === config.boardId);
             const isNotSent = !messagesSended.includes(action.id);
         
             return isNewAction && isNotQueued && isNotSent;
         });
-        debugComment('Consulting Trello API... | Hour: ' + lastCheck.toLocaleTimeString() + ' | New changes: ' + newActions.length);
+        debugComment(language.checking_trello_api + language.board_name + config.boardName + language.hour + lastCheck.toLocaleTimeString() + language.new_changes + newActions.length, config.disableComments);
         if (newActions.length > 0) {
             newActions.forEach(action => {
-                debugComment(`A new action has been found: ${action.type}`);
-                createMessage(action);
+                debugComment(`${language.new_action} ${action.type}`, config.disableComments);
+                createMessage(action, config);
             });
         }
     } catch (error) {
-        console.error('Error consulting the Trello API:', error);
+        console.error(language.error_checking_trello_api, error);
     }
 }
 
+// async function sendMessagesToDiscord(configs) {
+//     debugComment(language.sending_to_discord, configs.disableComments);
+//     let groupedMessages = messagesQueue.reduce((acc, message) => {
+//         if (!acc[message.boardId]) {
+//             acc[message.boardId] = [];
+//         }
+//         acc[message.boardId].push(message);
+//         return acc;
+//     }, {});
 
-async function sendMessagesToDiscord() {
-    debugComment('Sending messages to discord...');
-    while (messagesQueue.length > 0) {
-        let message = messagesQueue.shift();
-        messagesSended.push(message.key);
+//     groupedMessages = Object.keys(groupedMessages).reduce((acc, boardId) => {
+//         let messages = groupedMessages[boardId];
+//         let uniqueMessages = messages.filter((message, index, self) => self.findIndex(m => m.key === message.key) === index);
+//         acc[boardId] = uniqueMessages;
+//         return acc;
+//     }, {});
+        
+
+//     for (let boardId in groupedMessages) {
+//         let messagesOfBoard = groupedMessages[boardId];
+//         messagesOfBoard.sort((a, b) => {
+//             let contentA = a.value.content.trim();
+//             let contentB = b.value.content.trim();
+            
+//             if (contentA && !contentB) {
+//                 return -1; 
+//             } else if (!contentA && contentB) {
+//                 return 1;
+//             }
+//             return 0;
+//         });
+
+//         for (let message of messagesOfBoard) {
+//             try {
+//                 await fetch(configs.discord_configs.webhookUrl, {
+//                     method: 'POST',
+//                     headers: {
+//                         'Content-Type': 'application/json',
+//                     },
+//                     body: JSON.stringify(message.value),
+//                 });
+
+//                 messagesSended.push(message.key);
+//             } catch (error) {
+//                 console.error(language.error_sending_to_discord, error);
+//             }
+//         }
+//     }
+
+//     messagesQueue = messagesQueue.filter(message => !messagesSended.includes(message.key));
+// }
+async function sendMessagesToDiscord(configs) {
+    debugComment(language.sending_to_discord, configs.disableComments);
+    let messagesToSend = messagesQueue.filter(message => message.boardId === configs.boardId);
+
+    for (let message of messagesToSend) {
         try {
-            await fetch(discordWebhookUrl, {
+            await fetch(configs.discord_configs.webhookUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(message.value)
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(message.value),
             });
+
+            messagesSended.push(message.key);
         } catch (error) {
-            console.error('Error sending a message to discord:', error);
+            console.error(language.error_sending_to_discord, error);
         }
     }
-    timer = null;
+
+    messagesQueue = messagesQueue.filter(message => !messagesSended.includes(message.key));
 }
 
-async function createMessage(action) {
+
+
+async function createMessage(action, configs) {
     let messageTitle = '';
     let messageDescription = '';
     let messageUrl = '';
@@ -79,161 +180,156 @@ async function createMessage(action) {
 
     switch (action.type) {
         case 'createCard':
-            messageTitle = `Created card: "${action.data.card.name}"`;
-            messageDescription = `A new card has been created.`;
+            messageTitle = `${language.trello_create_card} "${action.data.card.name}"`;
+            messageDescription = language.trello_create_card_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
 
             if (action.data.card.hasOwnProperty('desc')) {
-                messageFields.push({ name: 'Description', value: action.data.card.desc.substring(0, 100) + '...' });
+                messageFields.push({ name: language.trello_desc, value: action.data.card.desc.substring(0, 100) + '...' });
             }
 
             if (action.data.card.hasOwnProperty('due')) {
-                messageFields.push({ name: 'Due date', value: action.data.card.due });
+                messageFields.push({ name: language.trello_due_date, value: action.data.card.due });
             }
 
             if (action.data.card.hasOwnProperty('dueComplete')) {
-                messageFields.push({ name: 'Expiration status', value: action.data.card.dueComplete ? 'Completed' : 'Waiting' });
+                messageFields.push({ name: language.trello_dueComplete, value: action.data.card.dueComplete ? 'Completed' : 'Waiting' });
             }
 
             if (action.data.card.hasOwnProperty('idAttachmentCover')) {
-                messageFields.push({ name: 'Front page', value: action.data.card.idAttachmentCover });
+                messageFields.push({ name: language.trello_idAttachmentCover, value: action.data.card.idAttachmentCover });
             }
 
             if (action.data.card.hasOwnProperty('idChecklists')) {
-                messageFields.push({ name: 'Checklist', value: action.data.card.checklists[0].name });
+                messageFields.push({ name: language.trello_idChecklists, value: action.data.card.checklists[0].name });
             }
 
             if (action.data.card.hasOwnProperty('idMembers')) {
-                messageFields.push({ name: 'Member', value: action.memberCreator.fullName });
+                messageFields.push({ name: language.trello_idMembers, value: action.memberCreator.fullName });
             }
 
             if (action.data.card.hasOwnProperty('idLabels')) {
-                messageFields.push({ name: 'Label', value: action.data.card.labels[0].name });
+                messageFields.push({ name: language.trello_idLabels, value: action.data.card.labels[0].name });
             }
 
             if (action.data.card.hasOwnProperty('idList')) {
-                messageFields.push({ name: 'List', value: action.data.list.name });
+                messageFields.push({ name: language.trello_idList, value: action.data.list.name });
             }
             break;
         case 'updateCard':
-            messageTitle = `Updated card: "${action.data.card.name}"`;
-            messageDescription = `A card has been updated.`;
+            messageTitle = `${language.trello_update_card} "${action.data.card.name}"`;
+            messageDescription = language.trello_update_card_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             if (action.data.old.hasOwnProperty('idList')) {
-                messageFields.push({ name: 'Previous list', value: action.data.listBefore.name });
-                messageFields.push({ name: 'Current list', value: action.data.listAfter.name });
+                messageFields.push({ name: language.trello_previous_list, value: action.data.listBefore.name });
+                messageFields.push({ name: language.trello_current_list, value: action.data.listAfter.name });
             }
             if (action.data.old.hasOwnProperty('name')) {
-                messageFields.push({ name: 'Previous name', value: action.data.old.name });
-                messageFields.push({ name: 'Current name', value: action.data.card.name });
+                messageFields.push({ name: language.trello_previous_name, value: action.data.old.name });
+                messageFields.push({ name: language.trello_current_name, value: action.data.card.name });
             }
             if (action.data.old.hasOwnProperty('idMembers')) {
-                messageFields.push({ name: 'Added member', value: action.memberCreator.fullName });
+                messageFields.push({ name: language.trello_idMembers, value: action.memberCreator.fullName });
             }
             if (action.data.old.hasOwnProperty('desc')) {
-                messageFields.push({ name: 'Previous description', value: action.data.old.desc.substring(0, 100) + '...'  });
-                messageFields.push({ name: 'Current description', value: action.data.card.desc.substring(0, 100) + '...'  });
+                messageFields.push({ name: language.trello_previous_desc, value: action.data.old.desc.substring(0, 100) + '...'  });
+                messageFields.push({ name: language.trello_current_desc, value: action.data.card.desc.substring(0, 100) + '...'  });
             }
             if (action.data.old.hasOwnProperty('due')) {
-                messageFields.push({ name: 'Previous expiration date', value: action.data.old.due });
-                messageFields.push({ name: 'Current expiration date', value: action.data.card.due });
+                messageFields.push({ name: language.trello_previous_due, value: action.data.old.due });
+                messageFields.push({ name: language.trello_current_due, value: action.data.card.due });
             }
             if (action.data.old.hasOwnProperty('dueComplete')) {
-                messageFields.push({ name: 'Previous expiration status', value: action.data.old.dueComplete ? 'Completed' : 'Waiting' });
-                messageFields.push({ name: 'Current expiration status', value: action.data.card.dueComplete ? 'Completed' : 'Waiting' });
+                messageFields.push({ name: language.trello_previous_dueComplete, value: action.data.old.dueComplete ? 'Completed' : 'Waiting' });
+                messageFields.push({ name: language.trello_current_dueComplete, value: action.data.card.dueComplete ? 'Completed' : 'Waiting' });
             }
             if (action.data.old.hasOwnProperty('idAttachmentCover')) {
-                messageFields.push({ name: 'Previous cover', value: action.data.old.idAttachmentCover });
-                messageFields.push({ name: 'Current cover', value: action.data.card.idAttachmentCover });
+                messageFields.push({ name: language.trello_previous_idAttachmentCover, value: action.data.old.idAttachmentCover });
+                messageFields.push({ name: language.trello_current_idAttachmentCover, value: action.data.card.idAttachmentCover });
             }
             if (action.data.old.hasOwnProperty('idChecklists')) {
-                messageFields.push({ name: 'Checklist added', value: action.data.card.checklists[0].name });
+                messageFields.push({ name: language.trello_previous_idChecklists, value: action.data.card.checklists[0].name });
             }
 
             break;
         case 'deleteCard':
-            messageTitle = `Deleted card`;
-            messageDescription = `A card has been deleted.`;
+            messageTitle = language.trello_delete_card;
+            messageDescription = language.trello_delete_card_desc
             break;
         case 'addMemberToCard':
-            messageTitle = `Member added to card: "${action.data.card.name}"`;
-            messageDescription = `A member has been added to the card.`;
+            messageTitle = `${language.trello_add_member_to_card}"${action.data.card.name}"`;
+            messageDescription = language.trello_add_member_to_card_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             break;
         case 'removeMemberFromCard':
-            messageTitle = `Card deleted member: "${action.data.card.name}"`;
-            messageDescription = `A card member has been deleted.`;
+            messageTitle = `${language.trello_remove_member_from_card}"${action.data.card.name}"`;
+            messageDescription = language.trello_remove_member_from_card_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             break;
         case 'moveCardToBoard':
-            messageTitle = `Board moving card: "${action.data.card.name}"`;
-            messageDescription = `A card to another board has moved.`;
+            messageTitle = `${language.trello_move_card_to_board}"${action.data.card.name}"`;
+            messageDescription = language.trello_move_card_to_board_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             break;
         case 'updateList':
-            messageTitle = `List Moved Card: "${action.data.listAfter.name}"`;
-            messageDescription = `A card to another list has moved.`;
+            messageTitle = `${language.trello_update_list} "${action.data.listAfter.name}"`;
+            messageDescription = language.trello_update_list_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             break;
         case 'addChecklistToCard':
-            messageTitle = `Checklist added to card: "${action.data.card.name}"`;
-            messageDescription = `A checklist has been added to the card.`;
+            messageTitle = `${language.trello_addChecklistToCard}"${action.data.card.name}"`;
+            messageDescription = language.trello_addChecklistToCard_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             break;
         case 'removeChecklistFromCard':
-            messageTitle = `Checklist deleted card: "${action.data.card.name}"`;
-            messageDescription = `A card checklist has been eliminated.`;
+            messageTitle = `${language.trello_removeChecklistFromCard}"${action.data.card.name}"`;
+            messageDescription = language.trello_removeChecklistFromCard_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             break;
         case 'updateCheckItemStateOnCard':
-            messageTitle = `Updated Checklist: "${action.data.checkItem.name}"`;
-            messageDescription = `A checklist has been updated.`;
+            messageTitle = `${language.trello_updateCheckItemStateOnCard}"${action.data.checkItem.name}"`;
+            messageDescription = language.trello_updateCheckItemStateOnCard_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             if (action.data.checkItem.hasOwnProperty('state')) {
                 if (action.data.checkItem.state == 'complete') {
-                    messageFields.push({ name: 'Name', value: ':white_check_mark: ' + action.data.checkItem.name });
+                    messageFields.push({ name: language.trello_updateCheckItemStateOnCard_name, value: ':white_check_mark: ' + action.data.checkItem.name });
                 } else {
-                    messageFields.push({ name: 'Name', value: ':x: ' + action.data.checkItem.name });
+                    messageFields.push({ name: language.trello_updateCheckItemStateOnCard_name, value: ':x: ' + action.data.checkItem.name });
                 }
             }           
         
             break;
         case 'updateChecklist':
-            messageTitle = `Updated Checklist: "${action.data.checklist.name}"`;
-            messageDescription = `A checklist has been updated.`;
+            messageTitle = `${language.trello_updateChecklist}"${action.data.checklist.name}"`;
+            messageDescription = language.trello_updateChecklist_desc;
             messageUrl = `https://trello.com/c/${action.data.card.shortLink}`;
             if (action.data.checklist.hasOwnProperty('name')) {
-                messageFields.push({ name: 'Previous name', value: action.data.old.name });
-                messageFields.push({ name: 'Current name', value: action.data.checklist.name });
+                messageFields.push({ name: language.trello_updateChecklist_previous_name, value: action.data.old.name });
+                messageFields.push({ name: language.trello_updateChecklist_current_name, value: action.data.checklist.name });
             }
             break;
         default:
-            messageTitle = 'Trello action';
-            messageDescription = `An unknown action has been performed: ${action.type}`;
+            messageTitle = language.trello_trello_action_not_supported;
+            messageDescription = `${language.trello_action_not_supported_desc} ${action.type}`;
             break;
     }
 
     let message = {
-        content: messagesQueue.length > 0 ? '' : 'YOUR MENTION ROLE OR ROLES <@&000000000000000000>',
+        content: messagesQueue.filter(message => message.boardId === configs.boardId).length > 0 ? configs.discord_configs.mentions.join(' ') : '',
         embeds: [{
             title: messageTitle,
             description: messageDescription,
             fields: messageFields,
             timestamp: action.date,
             footer: { text: 'TrellordConnector' },
-        }]
+        }],
+        username: configs.discord_configs.username,
+        avatar_url: configs.discord_configs.avatar_url,
     };
     
     messagesQueue.push({
         key: action.id,
-        value: message
+        value: message,
+        boardId: configs.boardId,
     });
 }
-
-
-
-app.listen(port || 8080, () => {
-    serverStart = new Date();
-    initializeMessageTimer();
-    console.log(`Server started at ` + new Date().toLocaleTimeString());
-});
