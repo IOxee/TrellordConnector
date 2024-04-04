@@ -22,6 +22,7 @@ const config = {
             'timer_duration': 20 * 60 * 1000, // 20 minutes in milliseconds
             'check_interval': 5 * 60 * 1000, // 5 minutes in milliseconds
             'discord_configs': {
+                'mentions': ['<@&1185625385514307645>', '@everyone'],
                 'webhookUrl': 'https://discord.com/api/webhooks/1185625385514307645/s8HJaXcy3GQxb9GByUhVZW6p8XGI1BGI_Nq2e4yPcjuoZwkJaLse42ua4dGtIlGQsxG-',
                 'username': 'TrellordConnector - GTA V ROADMAP',
                 'avatar_url': 'https://media.discordapp.net/attachments/1190453964605493328/1193990719891853424/colores.png?ex=661d7782&is=660b0282&hm=66c624f92f5d28089e16603b9da724d3dce6bb2d5df23fdf89a70b21e249b91b&=&format=png&quality=lossless&width=671&height=671',
@@ -34,6 +35,7 @@ const config = {
             'timer_duration': 20 * 60 * 1000,
             'check_interval': 5 * 60 * 1000,
             'discord_configs': {
+                'mentions': ['<@&1185625385514307645>', '@everyone'],
                 'webhookUrl': 'https://discord.com/api/webhooks/1185625385514307645/s8HJaXcy3GQxb9GByUhVZW6p8XGI1BGI_Nq2e4yPcjuoZwkJaLse42ua4dGtIlGQsxG-',
                 'username': 'TrellordConnector - ARK ROADMAP',
                 'avatar_url': 'https://media.discordapp.net/attachments/1190453964605493328/1193990719891853424/colores.png?ex=661d7782&is=660b0282&hm=66c624f92f5d28089e16603b9da724d3dce6bb2d5df23fdf89a70b21e249b91b&=&format=png&quality=lossless&width=671&height=671',
@@ -43,7 +45,24 @@ const config = {
 }
 
 app.listen(8080, () => {
-    serverStart = new Date();
+    console.clear();
+	serverStart = new Date();
+	console.log(`
+				███████╗██████╗░░█████╗░░█████╗░████████╗░█████╗░██╗░░░░░
+				██╔════╝██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██║░░░░░
+				█████╗░░██████╔╝███████║██║░░╚═╝░░░██║░░░███████║██║░░░░░
+				██╔══╝░░██╔══██╗██╔══██║██║░░██╗░░░██║░░░██╔══██║██║░░░░░
+				██║░░░░░██║░░██║██║░░██║╚█████╔╝░░░██║░░░██║░░██║███████╗
+				╚═╝░░░░░╚═╝░░╚═╝╚═╝░░╚═╝░╚════╝░░░░╚═╝░░░╚═╝░░╚═╝╚══════╝
+
+		░██████╗░░█████╗░███╗░░░███╗███████╗  ░██████╗████████╗██╗░░░██╗██████╗░██╗░█████╗░░██████╗
+		██╔════╝░██╔══██╗████╗░████║██╔════╝  ██╔════╝╚══██╔══╝██║░░░██║██╔══██╗██║██╔══██╗██╔════╝
+		██║░░██╗░███████║██╔████╔██║█████╗░░  ╚█████╗░░░░██║░░░██║░░░██║██║░░██║██║██║░░██║╚█████╗░
+		██║░░╚██╗██╔══██║██║╚██╔╝██║██╔══╝░░  ░╚═══██╗░░░██║░░░██║░░░██║██║░░██║██║██║░░██║░╚═══██╗
+		╚██████╔╝██║░░██║██║░╚═╝░██║███████╗  ██████╔╝░░░██║░░░╚██████╔╝██████╔╝██║╚█████╔╝██████╔╝
+		░╚═════╝░╚═╝░░╚═╝╚═╝░░░░░╚═╝╚══════╝  ╚═════╝░░░░╚═╝░░░░╚═════╝░╚═════╝░╚═╝░╚════╝░╚═════╝░
+	`);
+
     for (let c of config.trellos) {
         setInterval(() => {
             checkForTrelloUpdates(c);
@@ -94,72 +113,43 @@ async function checkForTrelloUpdates(config) {
     }
 }
 
-// async function sendMessagesToDiscord(configs) {
-//     debugComment(language.sending_to_discord, configs.disableComments);
-//     let groupedMessages = messagesQueue.reduce((acc, message) => {
-//         if (!acc[message.boardId]) {
-//             acc[message.boardId] = [];
-//         }
-//         acc[message.boardId].push(message);
-//         return acc;
-//     }, {});
-
-//     groupedMessages = Object.keys(groupedMessages).reduce((acc, boardId) => {
-//         let messages = groupedMessages[boardId];
-//         let uniqueMessages = messages.filter((message, index, self) => self.findIndex(m => m.key === message.key) === index);
-//         acc[boardId] = uniqueMessages;
-//         return acc;
-//     }, {});
-        
-
-//     for (let boardId in groupedMessages) {
-//         let messagesOfBoard = groupedMessages[boardId];
-//         messagesOfBoard.sort((a, b) => {
-//             let contentA = a.value.content.trim();
-//             let contentB = b.value.content.trim();
-            
-//             if (contentA && !contentB) {
-//                 return -1; 
-//             } else if (!contentA && contentB) {
-//                 return 1;
-//             }
-//             return 0;
-//         });
-
-//         for (let message of messagesOfBoard) {
-//             try {
-//                 await fetch(configs.discord_configs.webhookUrl, {
-//                     method: 'POST',
-//                     headers: {
-//                         'Content-Type': 'application/json',
-//                     },
-//                     body: JSON.stringify(message.value),
-//                 });
-
-//                 messagesSended.push(message.key);
-//             } catch (error) {
-//                 console.error(language.error_sending_to_discord, error);
-//             }
-//         }
-//     }
-
-//     messagesQueue = messagesQueue.filter(message => !messagesSended.includes(message.key));
-// }
 async function sendMessagesToDiscord(configs) {
     debugComment(language.sending_to_discord, configs.disableComments);
     let messagesToSend = messagesQueue.filter(message => message.boardId === configs.boardId);
-
-    for (let message of messagesToSend) {
+    if (messagesToSend.length > 0) {
+        const customMessage = {
+            content: configs.discord_configs.mentions.join(' '),
+        };
+        
         try {
             await fetch(configs.discord_configs.webhookUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(message.value),
+                body: JSON.stringify(customMessage),
             });
+        } catch (error) {
+            console.error(language.error_sending_to_discord, error);
+        }
+    
 
-            messagesSended.push(message.key);
+        try {
+            for (let message of messagesToSend) {
+                try {
+                    await fetch(configs.discord_configs.webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(message.value),
+                    });
+
+                    messagesSended.push(message.key);
+                } catch (error) {
+                    console.error(language.error_sending_to_discord, error);
+                }
+            }
         } catch (error) {
             console.error(language.error_sending_to_discord, error);
         }
@@ -318,10 +308,12 @@ async function createMessage(action, configs) {
             description: messageDescription,
             fields: messageFields,
             timestamp: action.date,
-            footer: { text: 'TrellordConnector' },
+            footer: {
+                text: 'TrellordConnector'
+            },
         }],
-        username: configs.discord_configs.username,
-        avatar_url: configs.discord_configs.avatar_url,
+        username: configs.discord_configs.username !== "" ? configs.discord_configs.username : "TrellordConnector | " + configs.boardName,
+		avatar_url: configs.discord_configs.avatar_url !== "" ? configs.discord_configs.avatar_url : null,
     };
     
     messagesQueue.push({
@@ -329,4 +321,9 @@ async function createMessage(action, configs) {
         value: message,
         boardId: configs.boardId,
     });
+}
+
+function formatDate(dateString) {
+    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleDateString("es-ES", options);
 }
