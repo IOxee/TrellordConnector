@@ -16,29 +16,16 @@ let messagesQueue = [];
 const config = {
     trellos: [ 
         {
-            'boardName': 'GTA V - ROADMAP',
-            'boardId': 'wlLJdpTt', // This is the board trello id
+            'boardName': 'ROADMAP',
+            'boardId': '......', // This is the board trello id
             'disableComments': false, // This is to disable the comments in the console
             'timer_duration': 20 * 60 * 1000, // 20 minutes in milliseconds
             'check_interval': 5 * 60 * 1000, // 5 minutes in milliseconds
             'discord_configs': {
-                'mentions': ['<@&1185625385514307645>', '@everyone'],
-                'webhookUrl': 'https://discord.com/api/webhooks/1185625385514307645/s8HJaXcy3GQxb9GByUhVZW6p8XGI1BGI_Nq2e4yPcjuoZwkJaLse42ua4dGtIlGQsxG-',
-                'username': 'TrellordConnector - GTA V ROADMAP',
-                'avatar_url': 'https://media.discordapp.net/attachments/1190453964605493328/1193990719891853424/colores.png?ex=661d7782&is=660b0282&hm=66c624f92f5d28089e16603b9da724d3dce6bb2d5df23fdf89a70b21e249b91b&=&format=png&quality=lossless&width=671&height=671',
-            }
-        },
-        {
-            'boardName': 'ARK - ROADMAP',
-            'boardId': 'kidWdfvh',
-            'disableComments': false,
-            'timer_duration': 20 * 60 * 1000,
-            'check_interval': 5 * 60 * 1000,
-            'discord_configs': {
-                'mentions': ['<@&1185625385514307645>', '@everyone'],
-                'webhookUrl': 'https://discord.com/api/webhooks/1185625385514307645/s8HJaXcy3GQxb9GByUhVZW6p8XGI1BGI_Nq2e4yPcjuoZwkJaLse42ua4dGtIlGQsxG-',
-                'username': 'TrellordConnector - ARK ROADMAP',
-                'avatar_url': 'https://media.discordapp.net/attachments/1190453964605493328/1193990719891853424/colores.png?ex=661d7782&is=660b0282&hm=66c624f92f5d28089e16603b9da724d3dce6bb2d5df23fdf89a70b21e249b91b&=&format=png&quality=lossless&width=671&height=671',
+                'mentions': [''@everyone'],
+                'webhookUrl': 'https://discord.com/api/webhooks/..../....',
+                'username': 'TrellordConnector - ROADMAP',
+                'avatar_url': '.....',
             }
         }
     ],
