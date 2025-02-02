@@ -21,9 +21,14 @@ TrellordConnector bridges the gap between Trello and Discord, providing a unique
    ```bash
    npm install
    ```
-3. **Set Up Webhooks**
+3. **Set up Env**
+   ```bash
+   mv .env.example .env
+   ```
+   Now edit the .env file to fit your needs
+4. **Set Up Webhooks**
    - Configure Trello and Discord webhooks in `server.js`.
-4. **Run TrellordConnector**
+5. **Run TrellordConnector**
    ```bash
    node server.js
    ```
