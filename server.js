@@ -31,7 +31,7 @@ const config = {
     ],
 }
 
-app.listen(8080, () => {
+app.listen(process.env.PORT, () => {
     console.clear();
 	serverStart = new Date();
 	console.log(`
@@ -292,6 +292,7 @@ async function createMessage(action, configs) {
     let message = {
         embeds: [{
             title: messageTitle,
+            url: messageUrl,
             description: messageDescription,
             fields: messageFields,
             timestamp: action.date,
