@@ -4,7 +4,6 @@ const i18n = require('./scripts/language');
 const app = express();
 let serverStart;
 
-
 require('dotenv').config();
 const trelloApiKey = process.env.TRELLO_API_KEY;
 const trelloToken = process.env.TRELLO_TOKEN;
@@ -119,7 +118,6 @@ async function sendMessagesToDiscord(configs) {
         } catch (error) {
             console.error(language.error_sending_to_discord, error);
         }
-    
 
         try {
             for (let message of messagesToSend) {
@@ -144,8 +142,6 @@ async function sendMessagesToDiscord(configs) {
 
     messagesQueue = messagesQueue.filter(message => !messagesSended.includes(message.key));
 }
-
-
 
 async function createMessage(action, configs) {
     let messageTitle = '';
