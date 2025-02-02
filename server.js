@@ -22,10 +22,10 @@ const config = {
             'timer_duration': 20 * 60 * 1000, // 20 minutes in milliseconds
             'check_interval': 5 * 60 * 1000, // 5 minutes in milliseconds
             'discord_configs': {
-                'mentions': [''@everyone'],
+                'mentions': ['@everyone'],
                 'webhookUrl': 'https://discord.com/api/webhooks/..../....',
-                'username': 'TrellordConnector - ROADMAP',
-                'avatar_url': '.....',
+                'username': 'TrellordConnector - ROADMAP', // Optional: Username of the Webhook User
+                'avatar_url': '.....', // Optional: Link to a image file
             }
         }
     ],
