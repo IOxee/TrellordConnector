@@ -4,7 +4,6 @@ const i18n = require('./scripts/language');
 const app = express();
 let serverStart;
 
-
 require('dotenv').config();
 const trelloApiKey = process.env.TRELLO_API_KEY;
 const trelloToken = process.env.TRELLO_TOKEN;
@@ -22,16 +21,16 @@ const config = {
             'timer_duration': 20 * 60 * 1000, // 20 minutes in milliseconds
             'check_interval': 5 * 60 * 1000, // 5 minutes in milliseconds
             'discord_configs': {
-                'mentions': [''@everyone'],
+                'mentions': ['@everyone'],
                 'webhookUrl': 'https://discord.com/api/webhooks/..../....',
-                'username': 'TrellordConnector - ROADMAP',
-                'avatar_url': '.....',
+                'username': 'TrellordConnector - ROADMAP', // Optional: Username of the Webhook User
+                'avatar_url': '.....', // Optional: Link to a image file
             }
         }
     ],
 }
 
-app.listen(8080, () => {
+app.listen(process.env.PORT, () => {
     console.clear();
 	serverStart = new Date();
 	console.log(`
@@ -119,7 +118,6 @@ async function sendMessagesToDiscord(configs) {
         } catch (error) {
             console.error(language.error_sending_to_discord, error);
         }
-    
 
         try {
             for (let message of messagesToSend) {
@@ -144,8 +142,6 @@ async function sendMessagesToDiscord(configs) {
 
     messagesQueue = messagesQueue.filter(message => !messagesSended.includes(message.key));
 }
-
-
 
 async function createMessage(action, configs) {
     let messageTitle = '';
@@ -292,6 +288,7 @@ async function createMessage(action, configs) {
     let message = {
         embeds: [{
             title: messageTitle,
+            url: messageUrl,
             description: messageDescription,
             fields: messageFields,
             timestamp: action.date,
