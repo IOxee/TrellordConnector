@@ -33,8 +33,17 @@ TrellordConnector bridges the gap between Trello and Discord, providing a unique
    node server.js
    ```
 
-## Contributing 🤝
-Your contributions are welcome! Feel free to fork the project and submit pull requests.
+## Contributing 🤝  
+Your contributions are welcome! Feel free to fork the project and submit pull requests. 🚀  
+
+### 🎉 Acknowledgments  
+We truly appreciate everyone who has contributed to improving this project! 💡✨  
+
+| 👤 Contributor  | 🔥 Changes Made |
+|---------------|----------------|
+| [@Luiggi33](https://github.com/Luiggi33)    | ✅ Added more descriptive comments to the configuration, 📄 updated info and `.env`, 🌐 added the port, and 🎨 applied minimal formatting. |
+
+**Thank you for your time and effort! 🙌💖**  
 
 ## License ⚖️
 MIT License
