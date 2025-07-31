@@ -27,7 +27,7 @@ TrellordConnector bridges the gap between Trello and Discord, providing a unique
    ```
    Now edit the .env file to fit your needs
 4. **Set Up Webhooks**
-   - Configure Trello and Discord webhooks in `server.js`.
+   - Configure Trello and Discord webhooks in `config.js`.
 5. **Run TrellordConnector**
    ```bash
    node server.js

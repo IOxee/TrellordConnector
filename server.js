@@ -1,5 +1,6 @@
 const express = require('express');
 const fetch = require('node-fetch');
+const fs = require('fs');
 const i18n = require('./scripts/language');
 const app = express();
 let serverStart;
@@ -12,23 +13,39 @@ let lastActionId = '';
 let messagesSended = [];
 let messagesQueue = [];
 
-const config = {
-    trellos: [ 
-        {
-            'boardName': 'ROADMAP',
-            'boardId': '......', // This is the board trello id
-            'disableComments': false, // This is to disable the comments in the console
-            'timer_duration': 20 * 60 * 1000, // 20 minutes in milliseconds
-            'check_interval': 5 * 60 * 1000, // 5 minutes in milliseconds
-            'discord_configs': {
-                'mentions': ['@everyone'],
-                'webhookUrl': 'https://discord.com/api/webhooks/..../....',
-                'username': 'TrellordConnector - ROADMAP', // Optional: Username of the Webhook User
-                'avatar_url': '.....', // Optional: Link to a image file
-            }
-        }
-    ],
+let config = require('./config');
+let checkIntervals = [];
+let sendIntervals = [];
+
+function loadConfig() {
+    delete require.cache[require.resolve('./config')];
+    try {
+        config = require('./config');
+        restartIntervals();
+        console.log('Configuration reloaded');
+    } catch (err) {
+        console.error('Error loading configuration:', err);
+    }
 }
+
+function restartIntervals() {
+    checkIntervals.forEach(clearInterval);
+    sendIntervals.forEach(clearInterval);
+    checkIntervals = [];
+    sendIntervals = [];
+
+    for (let c of config.trellos) {
+        checkIntervals.push(setInterval(() => {
+            checkForTrelloUpdates(c);
+        }, c.check_interval));
+
+        sendIntervals.push(setInterval(() => {
+            sendMessagesToDiscord(c);
+        }, c.timer_duration));
+    }
+}
+
+fs.watchFile('./config.js', loadConfig);
 
 app.listen(process.env.PORT, () => {
     console.clear();
@@ -49,17 +66,7 @@ app.listen(process.env.PORT, () => {
 		░╚═════╝░╚═╝░░╚═╝╚═╝░░░░░╚═╝╚══════╝  ╚═════╝░░░░╚═╝░░░░╚═════╝░╚═════╝░╚═╝░╚════╝░╚═════╝░
 	`);
 
-    for (let c of config.trellos) {
-        setInterval(() => {
-            checkForTrelloUpdates(c);
-
-        }, c.check_interval);
-
-        setInterval(() => {
-            sendMessagesToDiscord(c);
-        }, c.timer_duration);
-
-    }
+    restartIntervals();
     console.log(language.server_start + new Date().toLocaleTimeString());
 });
 
